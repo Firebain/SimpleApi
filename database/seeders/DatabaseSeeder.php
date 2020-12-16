@@ -9,11 +9,6 @@ use App\Models\User;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     *
-     * @return void
-     */
     public function run()
     {
         User::factory()
@@ -23,6 +18,7 @@ class DatabaseSeeder extends Seeder
                 ["email" => "test2@gmail.com"],
                 ["email" => "test3@gmail.com"]
             ))
+            ->hasCategories(5)
             ->create();
     }
 }

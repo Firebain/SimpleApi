@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +18,11 @@ use App\Http\Controllers\AuthController;
 */
 
 Route::post("/auth/token", [AuthController::class, "token"]);
+
+Route::get("/categories", [CategoryController::class, "index"]);
+Route::middleware("auth:sanctum")
+    ->apiResource('categories', CategoryController::class)
+    ->except(["index", "show"]);
 
 Route::group(["middleware" => ["auth:sanctum"]], function () {
 });

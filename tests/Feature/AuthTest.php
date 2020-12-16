@@ -11,35 +11,31 @@ use App\Models\User;
 class AuthTest extends TestCase
 {
     use RefreshDatabase;
-    /**
-     * A basic feature test example.
-     *
-     * @return void
-     */
+
     public function testRequestShouldHaveEmailAndPassword()
     {
-        $response = $this->postJson('/auth/token');
-
-        $response->assertJsonValidationErrors([
-            "email",
-            "password"
-        ]);
-
-        $response->assertStatus(422);
+        $this
+            ->postJson('/auth/token')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                "email",
+                "password"
+            ]);
     }
 
     public function testCredentialsMustBeCorrect()
     {
         $user = User::factory()->create();
 
-        $response = $this->postJson('/auth/token', [
-            "email" => $user->email,
-            "password" => "wrong password"
-        ]);
-
-        $response->assertJsonValidationErrors(["email" => "The provided credentials are incorrect."]);
-
-        $response->assertStatus(422);
+        $this
+            ->postJson('/auth/token', [
+                "email" => $user->email,
+                "password" => "wrong password"
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                "email" => "The provided credentials are incorrect."
+            ]);
     }
 
     public function testUserShouldGetHisOwnKey()
@@ -50,6 +46,8 @@ class AuthTest extends TestCase
             "email" => $user->email,
             "password" => "password"
         ]);
+
+        $response->assertOk();
 
         [$id, $user_token] = explode("|", $response->original);
 
