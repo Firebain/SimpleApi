@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Repositories\CategoryRepository;
 use App\Http\Resources\Category as CategoryResource;
-use App\Http\Resources\CategoryCollection as CategoriesResource;
 
 class CategoryController extends Controller
 {
@@ -20,7 +19,7 @@ class CategoryController extends Controller
 
     public function index()
     {
-        return new CategoriesResource($this->categories->all());
+        return CategoryResource::collection($this->categories->all());
     }
 
     public function store(Request $request)
@@ -53,7 +52,7 @@ class CategoryController extends Controller
     {
         $this->authorize("forceDelete", $category);
 
-        $this->categories->destroy($category);
+        $this->categories->delete($category);
 
         return "true";
     }

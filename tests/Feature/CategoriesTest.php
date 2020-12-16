@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use Illuminate\Support\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -13,7 +12,7 @@ use App\Models\User;
 
 class CategoriesTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, WithFaker;
 
     public function testAuthenticationRequired()
     {
@@ -53,13 +52,13 @@ class CategoriesTest extends TestCase
             ]);
     }
 
-    public function testUserCanCreateNewCategory()
+    public function testUserCanStoreNewCategory()
     {
         $user = User::factory()->create();
 
         Sanctum::actingAs($user);
 
-        $categoryTitle = Str::random(40);
+        $categoryTitle = $this->faker->sentence(3);
 
         $response = $this
             ->postJson("/categories", [
@@ -125,7 +124,7 @@ class CategoriesTest extends TestCase
 
         $category = $user->categories->first();
 
-        $categoryTitle = Str::random(40);
+        $categoryTitle = $this->faker->sentence(3);
 
         $response = $this->patchJson("/categories/{$category->id}", [
             "title" => $categoryTitle

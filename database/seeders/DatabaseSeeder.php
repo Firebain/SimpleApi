@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Factories\Sequence;
 
 use App\Models\User;
+use App\Models\Category;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,7 +19,11 @@ class DatabaseSeeder extends Seeder
                 ["email" => "test2@gmail.com"],
                 ["email" => "test3@gmail.com"]
             ))
-            ->hasCategories(5)
+            ->has(
+                Category::factory()
+                    ->count(3)
+                    ->hasProducts(6)
+            )
             ->create();
     }
 }

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,16 +18,18 @@ use App\Http\Controllers\CategoryController;
 |
 */
 
-Route::post("/auth/token", [AuthController::class, "token"]);
+Route::post("/auth/token", [AuthController::class, "token"])
+    ->name("auth.token");
 
-Route::get("/categories", [CategoryController::class, "index"]);
+Route::get("/categories", [CategoryController::class, "index"])
+    ->name("categories.index");
 Route::middleware("auth:sanctum")
     ->apiResource('categories', CategoryController::class)
     ->except(["index", "show"]);
 
-Route::group(["middleware" => ["auth:sanctum"]], function () {
-});
-
-// Route::middleware('auth:api')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
+Route::get("/categories/{category}/products", [ProductController::class, "index"])
+    ->name("categories.products.index");
+Route::middleware("auth:sanctum")
+    ->apiResource('categories.products', ProductController::class)
+    ->except(["index", "show"])
+    ->scoped();

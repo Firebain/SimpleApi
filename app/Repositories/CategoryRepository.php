@@ -7,24 +7,16 @@ use Illuminate\Support\Collection;
 use App\Models\User;
 use App\Models\Category;
 
-class CategoryRepository
+class CategoryRepository extends BaseRepository
 {
-    public function all(): Collection
+    protected function getInstance()
     {
-        return Category::all();
+        return Category::class;
     }
 
-    public function update(Category $category, $fillable)
+    public function getByIdWithProducts(int $id): ?Category
     {
-        $category->fill($fillable);
-        $category->save();
-
-        return $category;
-    }
-
-    public function destroy(Category $category)
-    {
-        $category->delete();
+        return Category::with("products")->find($id);
     }
 
     public function createForUser(User $user, array $fillable): Category
