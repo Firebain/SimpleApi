@@ -3,7 +3,9 @@
 namespace App\Repositories;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Arr;
 
+use App\Models\User;
 use App\Models\Product;
 use App\Models\Category;
 
@@ -14,8 +16,30 @@ class ProductRepository extends BaseRepository
         return Product::class;
     }
 
-    public function createForCategory(Category $category, array $fillable): Product
+    public function createForUser(User $user, array $fillable): Product
     {
-        return $category->products()->create($fillable);
+        $data = Arr::except($fillable, "categories");
+
+        $product = $user->products()->create($data);
+
+        if ($fillable["categories"]) {
+            $product->categories()->sync($fillable["categories"]);
+        }
+
+        return $product;
+    }
+
+    public function update($product, $fillable)
+    {
+        $data = Arr::except($fillable, "categories");
+
+        $product->fill($fillable);
+        $product->save();
+
+        if ($fillable["categories"]) {
+            $product->categories()->sync($fillable["categories"]);
+        }
+
+        return $product;
     }
 }

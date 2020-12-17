@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Repositories\CategoryRepository;
 use App\Repositories\ProductRepository;
 use App\Http\Resources\Product as ProductResource;
+use App\Rules\AllExists;
 
 class ProductController extends Controller
 {
@@ -34,25 +35,35 @@ class ProductController extends Controller
         return ProductResource::collection($category->products);
     }
 
-    public function store(Request $request, Category $category)
+    public function store(Request $request)
     {
-        $this->authorize("create", [Product::class, $category]);
-
         $fillable = $request->validate([
+            "categories" => [
+                "nullable",
+                "array",
+                new AllExists("categories", "id")
+            ],
             "title" => ["required", "string", "max:255"],
             "content" => ["required", "string"]
         ]);
 
-        $product = $this->products->createForCategory($category, $fillable);
+        $user = $request->user();
+
+        $product = $this->products->createForUser($user, $fillable);
 
         return new ProductResource($product);
     }
 
-    public function update(Request $request, Category $category, Product $product)
+    public function update(Request $request, Product $product)
     {
-        $this->authorize("update", [$product, $category]);
+        $this->authorize("update", $product);
 
         $fillable = $request->validate([
+            "categories" => [
+                "nullable",
+                "array",
+                new AllExists("categories", "id")
+            ],
             "title" => ["required_without:content", "string", "max:255"],
             "content" => ["required_without:title", "string"]
         ]);
@@ -62,9 +73,9 @@ class ProductController extends Controller
         return new ProductResource($product);
     }
 
-    public function destroy(Category $category, Product $product)
+    public function destroy(Product $product)
     {
-        $this->authorize("forceDelete", [$product, $category]);
+        $this->authorize("forceDelete", $product);
 
         $this->products->delete($product);
 

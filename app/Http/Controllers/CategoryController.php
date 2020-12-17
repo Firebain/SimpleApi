@@ -25,22 +25,18 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            "title" => ["required", "string", "max:255"]
+            "title" => ["required", "string", "max:255", "unique:categories"]
         ]);
 
-        $user = $request->user();
-
-        $category = $this->categories->createForUser($user, $validated);
+        $category = $this->categories->create($validated);
 
         return new CategoryResource($category);
     }
 
     public function update(Request $request, Category $category)
     {
-        $this->authorize("update", $category);
-
         $validated = $request->validate([
-            "title" => ["required", "string", "max:255"]
+            "title" => ["required", "string", "max:255", "unique:categories"]
         ]);
 
         $category = $this->categories->update($category, $validated);
@@ -50,8 +46,6 @@ class CategoryController extends Controller
 
     public function destroy(Category $category)
     {
-        $this->authorize("forceDelete", $category);
-
         $this->categories->delete($category);
 
         return "true";

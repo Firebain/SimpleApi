@@ -19,11 +19,11 @@ class DatabaseSeeder extends Seeder
                 ["email" => "test2@gmail.com"],
                 ["email" => "test3@gmail.com"]
             ))
-            ->has(
-                Category::factory()
-                    ->count(3)
-                    ->hasProducts(6)
-            )
+            ->create();
+
+        Category::factory()
+            ->count(3)
+            ->hasProducts(6)
             ->create();
     }
 }

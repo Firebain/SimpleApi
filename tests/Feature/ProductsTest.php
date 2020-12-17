@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Arr;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 use App\Models\User;
 use App\Models\Category;
+use App\Models\Product;
 
 class ProductsTest extends TestCase
 {
@@ -16,135 +18,111 @@ class ProductsTest extends TestCase
 
     public function testAuthenticationRequired()
     {
-        $this->assertAuthenticationRequired("/categories/1/products", "post");
-        $this->assertAuthenticationRequired("/categories/1/products/1", "patch");
-        $this->assertAuthenticationRequired("/categories/1/products/1", "delete");
+        $this->assertAuthenticationRequired("/products", "post");
+        $this->assertAuthenticationRequired("/products/1", "patch");
+        $this->assertAuthenticationRequired("/products/1", "delete");
     }
 
     public function testIndexReturnsCorrectResult()
     {
-        $user = User::factory()
-            ->has(
-                Category::factory()
-                    ->hasProducts(8)
-            )
+        $category = Category::factory()
+            ->hasProducts(8)
             ->create();
-
-        $category = $user->categories->first();
 
         $this
             ->getJson("/categories/{$category->id}/products")
             ->assertOk()
             ->assertJsonStructure([[
                 "id",
+                "categories",
                 "title",
                 "content"
             ]])
             ->assertJsonCount(8);
     }
 
-    public function testUserCantStoreNotInHisCategory()
-    {
-        [$firstUser, $secondUser] = User::factory()
-            ->count(2)
-            ->hasCategories()
-            ->create();
-
-        Sanctum::actingAs($secondUser);
-
-        $category = $firstUser->categories->first();
-
-        $this
-            ->postJson("/categories/{$category->id}/products")
-            ->assertForbidden();
-    }
-
     public function testUserCantStoreWithoutData()
     {
-        $user = User::factory()
-            ->hasCategories()
-            ->create();
-
-        $category = $user->categories->first();
-
-        Sanctum::actingAs($user);
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
 
         $this
-            ->postJson("/categories/{$category->id}/products")
+            ->postJson("/products")
             ->assertStatus(422)
             ->assertJsonValidationErrors([
                 "title",
                 "content"
+            ]);
+    }
+
+    public function testUserCantStoreWithUnexistedCategory()
+    {
+        $category = Category::factory()->create();
+
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
+
+        $data = [
+            "categories" => [$category->id + 1, $category->id],
+            "title" => $this->faker->sentence(3),
+            "content" => $this->faker->text
+        ];
+
+        $this
+            ->postJson("/products", $data)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                "categories"
             ]);
     }
 
     public function testUserCanStoreNewProduct()
     {
-        $user = User::factory()
-            ->hasCategories()
-            ->create();
+        $category = Category::factory()->create();
 
-        $category = $user->categories->first();
+        $user = User::factory()->create();
 
         Sanctum::actingAs($user);
 
-        $productTitle = $this->faker->sentence(3);
-        $productContent = $this->faker->text;
+        $data = [
+            "categories" => [$category->id],
+            "title" => $this->faker->sentence(3),
+            "content" => $this->faker->text
+        ];
 
-        $response = $this
-            ->postJson("/categories/{$category->id}/products", [
-                "title" => $productTitle,
-                "content" => $productContent
-            ]);
+        $response = $this->postJson("/products", $data);
 
         $response
             ->assertCreated()
             ->assertJsonStructure([
                 "id",
+                "categories",
                 "title",
                 "content"
             ]);
 
-        $this->assertEquals($response->original->title, $productTitle);
-        $this->assertEquals($response->original->content, $productContent);
-    }
+        $this->assertDatabaseHas(
+            "products",
+            ["user_id" => $user->id] + Arr::except($data, "categories")
+        );
 
-    public function testUserCantUpdateNotInHisCategory()
-    {
-        [$firstUser, $secondUser] = User::factory()
-            ->count(2)
-            ->has(
-                Category::factory()
-                    ->hasProducts()
-            )
-            ->create();
+        $categories_ids = $response->original->categories()
+            ->pluck("id")
+            ->toArray();
 
-        Sanctum::actingAs($secondUser);
-
-        $category = $firstUser->categories->first();
-        $product = $category->products->first();
-
-        $this
-            ->patchJson("/categories/{$category->id}/products/{$product->id}")
-            ->assertForbidden();
+        $this->assertEquals([$category->id], $categories_ids);
     }
 
     public function testUserCantUpdateWithoutData()
     {
-        $user = User::factory()
-            ->has(
-                Category::factory()
-                    ->hasProducts()
-            )
-            ->create();
+        $product = Product::factory()->create();
 
-        Sanctum::actingAs($user);
-
-        $category = $user->categories->first();
-        $product = $category->products->first();
+        Sanctum::actingAs($product->user);
 
         $this
-            ->patchJson("/categories/{$category->id}/products/{$product->id}")
+            ->patchJson("/products/{$product->id}")
             ->assertStatus(422)
             ->assertJsonValidationErrors([
                 "title",
@@ -152,76 +130,76 @@ class ProductsTest extends TestCase
             ]);
     }
 
+    public function testUserCantUpdateNotHisProduct()
+    {
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
+
+        $product = Product::factory()->create();
+
+        $this
+            ->patchJson("/products/{$product->id}")
+            ->assertForbidden();
+    }
+
     public function testUserCanUpdateProduct()
     {
-        $user = User::factory()
-            ->has(
-                Category::factory()
-                    ->hasProducts()
-            )
+        [$firstCategory, $secondCategory] = Category::factory()
+            ->count(2)
             ->create();
 
-        Sanctum::actingAs($user);
+        $product = Product::factory()->create();
 
-        $category = $user->categories->first();
-        $product = $category->products->first();
+        Sanctum::actingAs($product->user);
 
-        $productTitle = $this->faker->sentence(3);
-        $productContent = $this->faker->text;
+        $data = [
+            "categories" => [$firstCategory->id, $secondCategory->id],
+            "title" => $this->faker->sentence(3),
+            "content" => $this->faker->text
+        ];
 
-        $response = $this->patchJson("/categories/{$category->id}/products/{$product->id}", [
-            "title" => $productTitle,
-            "content" => $productContent
-        ]);
+        $response = $this->patchJson("/products/{$product->id}", $data);
 
         $response
             ->assertOk()
             ->assertJsonStructure([
                 "id",
+                "categories",
                 "title",
                 "content"
             ]);
 
-        $this->assertEquals($response->original->title, $productTitle);
-        $this->assertEquals($response->original->content, $productContent);
+        $this->assertDatabaseHas("products", Arr::except($data, "categories"));
+
+        $categories_ids = $response->original->categories()
+                ->pluck("id")
+                ->toArray();
+
+        $this->assertEquals([$firstCategory->id, $secondCategory->id], $categories_ids);
     }
 
-    public function testUserCantDeleteNotInHisCategory()
+    public function testUserCantDeleteNotHisProduct()
     {
-        [$firstUser, $secondUser] = User::factory()
-            ->count(2)
-            ->has(
-                Category::factory()
-                    ->hasProducts()
-            )
-            ->create();
+        $product = Product::factory()->create();
 
-        Sanctum::actingAs($secondUser);
-
-        $category = $firstUser->categories->first();
-        $product = $category->products->first();
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
 
         $this
-            ->deleteJson("/categories/{$category->id}/products/{$product->id}")
+            ->deleteJson("/products/{$product->id}")
             ->assertForbidden();
     }
 
     public function testUserCanDeleteProduct()
     {
-        $user = User::factory()
-            ->has(
-                Category::factory()
-                    ->hasProducts()
-            )
-            ->create();
+        $product = Product::factory()->create();
 
-        Sanctum::actingAs($user);
-
-        $category = $user->categories->first();
-        $product = $category->products->first();
+        Sanctum::actingAs($product->user);
 
         $this
-            ->deleteJson("/categories/{$category->id}/products/{$product->id}")
+            ->deleteJson("/products/{$product->id}")
             ->assertOk()
             ->assertSeeText("true");
 

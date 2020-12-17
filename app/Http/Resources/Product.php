@@ -16,8 +16,9 @@ class Product extends JsonResource
     {
         return [
             "id" => $this->id,
+            "categories" => $this->categories->pluck("id"),
             "title" => $this->title,
-            "content" => $this->content
+            "content" => $this->content,
         ];
     }
 }

@@ -12,18 +12,13 @@ class ProductPolicy
 {
     use HandlesAuthorization;
 
-    public function create(User $user, Category $category)
+    public function update(User $user, Product $product)
     {
-        return $user->can("update", $category);
+        return $product->user_id === $user->id;
     }
 
-    public function update(User $user, Product $product, Category $category)
+    public function forceDelete(User $user, Product $product)
     {
-        return $user->can("update", $category);
-    }
-
-    public function forceDelete(User $user, Product $product, Category $category)
-    {
-        return $user->can("update", $category);
+        return $product->user_id === $user->id;
     }
 }

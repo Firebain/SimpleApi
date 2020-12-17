@@ -4,9 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-use App\Models\User;
+use App\Models\Category;
+use App\Models\Product;
 
-class CreateProductsTable extends Migration
+class CreateCategoryProductTable extends Migration
 {
     /**
      * Run the migrations.
@@ -15,14 +16,13 @@ class CreateProductsTable extends Migration
      */
     public function up()
     {
-        Schema::create('products', function (Blueprint $table) {
-            $table->id();
-            $table->foreignIdFor(User::class)
+        Schema::create('category_product', function (Blueprint $table) {
+            $table->foreignIdFor(Category::class)
                 ->constrained()
                 ->onDelete('cascade');
-            $table->string("title");
-            $table->text("content");
-            $table->timestamps();
+            $table->foreignIdFor(Product::class)
+                ->constrained()
+                ->onDelete('cascade');
         });
     }
 
@@ -33,6 +33,6 @@ class CreateProductsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('products');
+        Schema::dropIfExists('category_product');
     }
 }

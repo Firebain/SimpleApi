@@ -30,6 +30,5 @@ Route::middleware("auth:sanctum")
 Route::get("/categories/{category}/products", [ProductController::class, "index"])
     ->name("categories.products.index");
 Route::middleware("auth:sanctum")
-    ->apiResource('categories.products', ProductController::class)
-    ->except(["index", "show"])
-    ->scoped();
+    ->apiResource('products', ProductController::class)
+    ->except(["index", "show"]);

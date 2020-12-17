@@ -14,8 +14,7 @@ class CategoryFactory extends Factory
     public function definition()
     {
         return [
-            "user_id" => User::factory(),
-            "title" => $this->faker->sentence(3)
+            "title" => $this->faker->unique()->sentence(3)
         ];
     }
 }

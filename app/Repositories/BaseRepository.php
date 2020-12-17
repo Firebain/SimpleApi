@@ -14,6 +14,11 @@ abstract class BaseRepository
         return $this->getInstance()::all();
     }
 
+    public function create(array $fillable): Model
+    {
+        return $this->getInstance()::create($fillable);
+    }
+
     public function update(Model $model, array $fillable)
     {
         $model->fill($fillable);

@@ -9,6 +9,7 @@ use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 use App\Models\User;
+use App\Models\Category;
 
 class CategoriesTest extends TestCase
 {
@@ -23,9 +24,8 @@ class CategoriesTest extends TestCase
 
     public function testIndexReturnsCorrectResult()
     {
-        User::factory()
-            ->count(2)
-            ->hasCategories(4)
+        Category::factory()
+            ->count(8)
             ->create();
 
         $this
@@ -40,9 +40,9 @@ class CategoriesTest extends TestCase
 
     public function testUserCantStoreCategoryWithoutData()
     {
-        $user = User::factory()->create();
-
-        Sanctum::actingAs($user);
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
 
         $this
             ->postJson("/categories")
@@ -52,59 +52,54 @@ class CategoriesTest extends TestCase
             ]);
     }
 
+    public function testUserCantStoreCategoryWithExistingTitle()
+    {
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
+
+        $data = [
+            "title" => $this->faker->sentence(3)
+        ];
+
+        Category::factory()->create($data);
+
+        $this
+            ->postJson("/categories", $data)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                "title"
+            ]);
+    }
+
     public function testUserCanStoreNewCategory()
     {
-        $user = User::factory()->create();
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
 
-        Sanctum::actingAs($user);
+        $data = [
+            "title" => $this->faker->sentence(3)
+        ];
 
-        $categoryTitle = $this->faker->sentence(3);
-
-        $response = $this
-            ->postJson("/categories", [
-                "title" => $categoryTitle
-            ]);
-
-        $response
+        $this
+            ->postJson("/categories", $data)
             ->assertCreated()
             ->assertJsonStructure([
                 "id",
                 "title",
             ]);
 
-        $this->assertDatabaseHas("categories", [
-            "title" => $categoryTitle
-        ]);
-
-        $this->assertEquals($response->original->user_id, $user->id);
-        $this->assertEquals($response->original->title, $categoryTitle);
-    }
-
-    public function testUserCantUpdateNotHisCategory()
-    {
-        [$firstUser, $secondUser] = User::factory()
-            ->count(2)
-            ->hasCategories(4)
-            ->create();
-
-        Sanctum::actingAs($secondUser);
-
-        $category = $firstUser->categories->first();
-
-        $this
-            ->patchJson("/categories/{$category->id}")
-            ->assertForbidden();
+        $this->assertDatabaseHas("categories", $data);
     }
 
     public function testUserCantUpdateCategoryWithoutData()
     {
-        $user = User::factory()
-            ->hasCategories(4)
-            ->create();
+        $category = Category::factory()->create();
 
-        Sanctum::actingAs($user);
-
-        $category = $user->categories->first();
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
 
         $this
             ->patchJson("/categories/{$category->id}")
@@ -114,57 +109,58 @@ class CategoriesTest extends TestCase
             ]);
     }
 
+    public function testUserCantUpdateCategoryWithExistingTitle()
+    {
+        $category = Category::factory()->create();
+
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
+
+        $data = [
+            "title" => $this->faker->sentence(3)
+        ];
+
+        Category::factory()->create($data);
+
+        $this
+            ->patchJson("/categories/{$category->id}", $data)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                "title"
+            ]);
+    }
+
     public function testUserCanUpdateCategory()
     {
-        $user = User::factory()
-            ->hasCategories(4)
-            ->create();
+        $category = Category::factory()->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
 
-        $category = $user->categories->first();
+        $data = [
+            "title" => $this->faker->sentence(3)
+        ];
 
-        $categoryTitle = $this->faker->sentence(3);
-
-        $response = $this->patchJson("/categories/{$category->id}", [
-            "title" => $categoryTitle
-        ]);
-
-        $response
+        $this
+            ->patchJson("/categories/{$category->id}", $data)
             ->assertOk()
             ->assertJsonStructure([
                 "id",
                 "title",
             ]);
 
-        $this->assertEquals($response->original->title, $categoryTitle);
-    }
-
-    public function testUserCantDeleteNotHisCategory()
-    {
-        [$firstUser, $secondUser] = User::factory()
-            ->count(2)
-            ->hasCategories(4)
-            ->create();
-
-        Sanctum::actingAs($secondUser);
-
-        $category = $firstUser->categories->first();
-
-        $this
-            ->deleteJson("/categories/{$category->id}")
-            ->assertForbidden();
+        $this->assertDatabaseHas("categories", $data);
     }
 
     public function testUserCanDeleteCategory()
     {
-        $user = User::factory()
-            ->hasCategories(4)
-            ->create();
+        $category = Category::factory()->create();
 
-        Sanctum::actingAs($user);
-
-        $category = $user->categories->first();
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
 
         $this
             ->deleteJson("/categories/{$category->id}")
