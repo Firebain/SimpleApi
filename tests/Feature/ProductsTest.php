@@ -86,33 +86,40 @@ class ProductsTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $data = [
+        $checkCreated = function ($data, $categories_ids) use ($user) {
+            $response = $this->postJson("/products", $data);
+
+            $response
+                ->assertCreated()
+                ->assertJsonStructure([
+                    "id",
+                    "categories",
+                    "title",
+                    "content"
+                ]);
+
+            $this->assertDatabaseHas(
+                "products",
+                ["user_id" => $user->id] + Arr::except($data, "categories")
+            );
+
+            $actual_categories_ids = $response->original->categories()
+                ->pluck("id")
+                ->toArray();
+
+            $this->assertEquals($categories_ids, $actual_categories_ids);
+        };
+
+        $checkCreated([
             "categories" => [$category->id],
             "title" => $this->faker->sentence(3),
             "content" => $this->faker->text
-        ];
+        ], [$category->id]);
 
-        $response = $this->postJson("/products", $data);
-
-        $response
-            ->assertCreated()
-            ->assertJsonStructure([
-                "id",
-                "categories",
-                "title",
-                "content"
-            ]);
-
-        $this->assertDatabaseHas(
-            "products",
-            ["user_id" => $user->id] + Arr::except($data, "categories")
-        );
-
-        $categories_ids = $response->original->categories()
-            ->pluck("id")
-            ->toArray();
-
-        $this->assertEquals([$category->id], $categories_ids);
+        $checkCreated([
+            "title" => $this->faker->sentence(3),
+            "content" => $this->faker->text
+        ], []);
     }
 
     public function testUserCantUpdateWithoutData()

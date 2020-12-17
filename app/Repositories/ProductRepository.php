@@ -22,7 +22,7 @@ class ProductRepository extends BaseRepository
 
         $product = $user->products()->create($data);
 
-        if ($fillable["categories"]) {
+        if (isset($fillable["categories"])) {
             $product->categories()->sync($fillable["categories"]);
         }
 
@@ -36,7 +36,7 @@ class ProductRepository extends BaseRepository
         $product->fill($fillable);
         $product->save();
 
-        if ($fillable["categories"]) {
+        if (isset($fillable["categories"])) {
             $product->categories()->sync($fillable["categories"]);
         }
 
